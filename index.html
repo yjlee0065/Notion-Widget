@@ -161,9 +161,9 @@
         playBtn.onclick = () => {
             const state = player.getPlayerState();
             if (state == YT.PlayerState.PLAYING) {
-                player.pauseVideo();
+                player.playVideo(); event.preventDefault();
             } else {
-                player.playVideo();
+                player.playVideo(); event.preventDefault();
             }
         };
 
