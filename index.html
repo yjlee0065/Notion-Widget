@@ -4,110 +4,34 @@
     <meta charset="UTF-8">
     <title>Notion CD Player</title>
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: transparent; /* 배경 투명 */
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        body { margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background: transparent; font-family: sans-serif; }
+        .cd-container { position: relative; width: 200px; height: 200px; margin-bottom: 25px; }
+        #cd-image { 
+            width: 100%; height: 100%; border-radius: 50%; 
+            background-size: cover; background-position: center; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15); border: 5px solid #fff; 
+            animation: rotate 10s linear infinite; animation-play-state: paused; 
         }
-
-        /* 시디 컨테이너 */
-        .cd-container {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            margin-bottom: 25px;
-        }
-
-        /* 빙글빙글 도는 시디 */
-        #cd-image {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background-size: cover;
-            background-position: center;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            border: 5px solid #fff;
-            animation: rotate 10s linear infinite;
-            animation-play-state: paused;
-        }
-
-        /* 시디 가운데 구멍 */
-        .cd-center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 35px;
-            height: 35px;
-            background: #fff;
-            border-radius: 50%;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
-        }
-
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* 컨트롤러 레이아웃 */
-        .controls {
-            width: 240px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-        }
-
-        /* 재생바 (연한 민트색) */
-        input[type="range"] {
-            width: 100%;
-            cursor: pointer;
-            accent-color: #B2DFDB; /* 연한 민트색 */
-        }
-
-        /* 버튼 컨테이너 */
-        .buttons {
-            display: flex;
-            align-items: center;
-            gap: 25px;
-        }
-
-        .btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #B2DFDB; /* 연한 민트색 */
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s;
-        }
-
-        .btn:active { transform: scale(0.9); }
+        .cd-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 35px; height: 35px; background: #fff; border-radius: 50%; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .controls { width: 240px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: #B2DFDB; }
+        .buttons { display: flex; align-items: center; gap: 25px; }
+        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 24px; }
         .play-btn { font-size: 40px; }
         .disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* 유튜브 플레이어 숨기기 */
-        #player { display: none; }
+        /* 유튜브 플레이어를 아주 작게 보이게 설정 (보안 이슈 해결용) */
+        #player-container { position: absolute; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
     </style>
 </head>
 <body>
-
-    <div id="player"></div>
-
+    <div id="player-container"><div id="player"></div></div>
     <div class="cd-container">
-        <div id="cd-image" style="background-image: url('https://via.placeholder.com/200');"></div>
+        <div id="cd-image"></div>
         <div class="cd-center"></div>
     </div>
-
     <div class="controls">
         <input type="range" id="progress-bar" value="0" min="0" max="100">
-        
         <div class="buttons">
             <button class="btn disabled">⏮</button>
             <button class="btn play-btn" id="play-pause">▶</button>
@@ -116,15 +40,12 @@
     </div>
 
     <script>
-        // 여기에 유튜브 영상 ID를 입력하세요 (예: https://www.youtube.com/watch?v=dQw4w9WgXcQ 면 dQw4w9WgXcQ)
-        const VIDEO_ID = '6VHik9rPxp8'; 
-        
+        const VIDEO_ID = '6VHik9rPxp8'; // 요청하신 곡 ID
         let player;
         const playBtn = document.getElementById('play-pause');
         const progressBar = document.getElementById('progress-bar');
         const cdImage = document.getElementById('cd-image');
 
-        // 유튜브 API 로드
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -132,34 +53,24 @@
 
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
-                height: '0',
-                width: '0',
+                height: '360',
+                width: '640',
                 videoId: VIDEO_ID,
                 playerVars: {
                     'autoplay': 0,
                     'controls': 0,
-                    'disablekb': 1,
-                    'fs': 0,
-                    'rel': 0,
-                    'showinfo': 0,
-                    'modestbranding': 1,
-                    'origin': window.location.origin // 이 부분이 노션과의 통신을 도와줍니다
+                    'enablejsapi': 1,
+                    'origin': window.location.origin,
+                    'widget_referrer': window.location.href
                 },
                 events: {
                     'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange,
-                    'onError': onPlayerError // 에러 확인용 추가
+                    'onStateChange': onPlayerStateChange
                 }
             });
         }
 
-        // 에러 발생 시 알림 (디버깅용)
-        function onPlayerError(e) {
-            console.error("YouTube Player Error:", e);
-        }
-
         function onPlayerReady(event) {
-            // 앨범 표지 가져오기 (유튜브 썸네일)
             cdImage.style.backgroundImage = `url('https://img.youtube.com/vi/${VIDEO_ID}/maxresdefault.jpg')`;
         }
 
@@ -174,29 +85,29 @@
             }
         }
 
-        playBtn.onclick = () => {
+        playBtn.onclick = function() {
             const state = player.getPlayerState();
             if (state == YT.PlayerState.PLAYING) {
-                player.playVideo();
+                player.pauseVideo();
             } else {
                 player.playVideo();
             }
         };
 
-        // 재생바 업데이트
         function updateProgress() {
             if (player && player.getCurrentTime) {
                 const current = player.getCurrentTime();
                 const duration = player.getDuration();
-                progressBar.value = (current / duration) * 100;
+                if (duration > 0) {
+                    progressBar.value = (current / duration) * 100;
+                }
                 if (player.getPlayerState() == YT.PlayerState.PLAYING) {
                     setTimeout(updateProgress, 1000);
                 }
             }
         }
 
-        // 재생바 드래그로 위치 이동
-        progressBar.oninput = () => {
+        progressBar.oninput = function() {
             const duration = player.getDuration();
             const seekTo = duration * (progressBar.value / 100);
             player.seekTo(seekTo);
