@@ -135,12 +135,28 @@
                 height: '0',
                 width: '0',
                 videoId: VIDEO_ID,
+                playerVars: {
+                    'autoplay': 0,
+                    'controls': 0,
+                    'disablekb': 1,
+                    'fs': 0,
+                    'rel': 0,
+                    'showinfo': 0,
+                    'modestbranding': 1,
+                    'origin': window.location.origin // 이 부분이 노션과의 통신을 도와줍니다
+                },
                 events: {
                     'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError // 에러 확인용 추가
                 }
             });
         }
+
+// 에러 발생 시 알림 (디버깅용)
+function onPlayerError(e) {
+    console.error("YouTube Player Error:", e);
+}
 
         function onPlayerReady(event) {
             // 앨범 표지 가져오기 (유튜브 썸네일)
