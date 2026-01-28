@@ -4,34 +4,23 @@
     <meta charset="UTF-8">
     <title>Notion CD Player</title>
     <style>
-        body { margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background: transparent; overflow: hidden; font-family: sans-serif; }
+        body { margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background: transparent; overflow: hidden; font-family: 'Pretendard', sans-serif; }
         
         /* 시디 컨테이너 */
         .player-wrapper { 
-            position: relative; 
-            width: 200px; 
-            height: 200px; 
-            margin-bottom: 20px; 
-            cursor: pointer;
-            border-radius: 50%;
+            position: relative; width: 200px; height: 200px; margin-bottom: 20px; 
+            cursor: pointer; border-radius: 50%;
         }
 
         #cd-image { 
             width: 100%; height: 100%; border-radius: 50%; 
             background-size: cover; background-position: center; 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15); 
-            border: 5px solid #fff; 
-            animation: rotate 10s linear infinite; 
-            animation-play-state: paused;
-            pointer-events: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15); border: 5px solid #fff; 
+            animation: rotate 10s linear infinite; animation-play-state: paused;
             box-sizing: border-box;
         }
 
-        #player-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0.01; z-index: 10; border-radius: 50%; overflow: hidden;
-        }
-
+        /* 시디 정중앙 구멍 */
         .cd-center { 
             position: absolute; top: 50%; left: 50%; width: 35px; height: 35px; 
             background: #fff; border-radius: 50%; z-index: 2; 
@@ -42,34 +31,30 @@
 
         /* 컨트롤러 레이아웃 */
         .controls { width: 240px; display: flex; flex-direction: column; align-items: center; }
-        
-        /* 노래 제목 */
-        .song-title {
-            font-size: 16px; font-weight: bold; color: #555;
-            margin-bottom: 15px; text-align: center;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
-        }
+        .song-title { font-size: 15px; font-weight: bold; color: #555; margin-bottom: 12px; text-align: center; width: 100%; }
 
         /* 재생바 컨테이너 */
-        .progress-container { width: 100%; margin-bottom: 5px; }
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: #B2DFDB; margin: 0; }
+        .progress-container { width: 100%; margin-bottom: 4px; }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: #B2DFDB; }
 
         /* 시간 표시 */
-        .time-info {
-            width: 100%; display: flex; justify-content: space-between;
-            font-size: 11px; color: #888; margin-bottom: 15px;
-        }
+        .time-info { width: 100%; display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 12px; }
 
-        /* 버튼 */
-        .buttons { display: flex; align-items: center; gap: 25px; }
-        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 24px; display: flex; align-items: center; }
+        /* 하단 버튼 영역 */
+        .buttons { position: relative; display: flex; align-items: center; gap: 25px; }
+        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 24px; z-index: 5; }
         .play-btn-ui { font-size: 40px; pointer-events: none; }
+
+        /* 🔥 핵심: 실제 유튜브 플레이어를 재생 버튼 위치에만 아주 작게 숨김 */
+        #player-wrapper {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 50px; height: 50px; z-index: 10; opacity: 0.01;
+        }
     </style>
 </head>
 <body>
 
-    <div class="player-wrapper">
-        <div id="player-overlay"></div> 
+    <div class="player-wrapper" id="cd-click-area">
         <div id="cd-image"></div>
         <div class="cd-center"></div>
     </div>
@@ -89,13 +74,14 @@
         <div class="buttons">
             <button class="btn" style="opacity: 0.5;">⏮</button>
             <div class="btn play-btn-ui" id="play-pause-ui">▶</div>
+            <div id="player-wrapper"><div id="player"></div></div>
             <button class="btn" style="opacity: 0.5;">⏭</button>
         </div>
     </div>
 
     <script>
         const VIDEO_ID = '6VHik9rPxp8'; 
-        const SONG_TITLE = '어리고 부끄럽고 바보 같은'; // 여기에 제목을 적어주세요!
+        const SONG_TITLE = '재생할 노래 제목';
 
         let player;
         const playBtnUI = document.getElementById('play-pause-ui');
@@ -104,8 +90,9 @@
         const songNameDisplay = document.getElementById('song-name');
         const currentTimeDisplay = document.getElementById('current-time');
         const durationDisplay = document.getElementById('duration-time');
+        const cdClickArea = document.getElementById('cd-click-area');
 
-        songNameDisplay.innerText = SONG_TITLE; // 제목 설정
+        songNameDisplay.innerText = SONG_TITLE;
 
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
@@ -113,15 +100,26 @@
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
         function onYouTubeIframeAPIReady() {
-            player = new YT.Player('player-overlay', {
-                height: '100%', width: '100%', videoId: VIDEO_ID,
-                playerVars: { 'autoplay': 0, 'controls': 1, 'enablejsapi': 1, 'origin': location.origin, 'modestbranding': 1, 'rel': 0 },
+            player = new YT.Player('player', {
+                height: '50', width: '50', videoId: VIDEO_ID,
+                playerVars: { 'enablejsapi': 1, 'origin': location.origin, 'controls': 0, 'modestbranding': 1 },
                 events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange }
             });
         }
 
         function onPlayerReady() {
             cdImage.style.backgroundImage = `url('https://img.youtube.com/vi/${VIDEO_ID}/maxresdefault.jpg')`;
+        }
+
+        // 시디 클릭 시 자바스크립트로 제어 (링크 이동 없음)
+        cdClickArea.onclick = function() {
+            togglePlay();
+        };
+
+        function togglePlay() {
+            const state = player.getPlayerState();
+            if (state == 1) player.pauseVideo();
+            else player.playVideo();
         }
 
         function formatTime(seconds) {
@@ -131,10 +129,10 @@
         }
 
         function onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.PLAYING) {
+            if (event.data == 1) { // PLAYING
                 playBtnUI.innerText = '⏸';
                 cdImage.style.animationPlayState = 'running';
-                durationDisplay.innerText = formatTime(player.getDuration()); // 총 길이 표시
+                durationDisplay.innerText = formatTime(player.getDuration());
                 updateProgress();
             } else {
                 playBtnUI.innerText = '▶';
@@ -148,9 +146,9 @@
                 const duration = player.getDuration();
                 if (duration > 0) {
                     progressBar.value = (current / duration) * 100;
-                    currentTimeDisplay.innerText = formatTime(current); // 현재 재생 위치 업데이트
+                    currentTimeDisplay.innerText = formatTime(current);
                 }
-                if (player.getPlayerState() == YT.PlayerState.PLAYING) setTimeout(updateProgress, 1000);
+                if (player.getPlayerState() == 1) setTimeout(updateProgress, 1000);
             }
         }
 
