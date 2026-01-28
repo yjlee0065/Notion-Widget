@@ -24,24 +24,27 @@
         
         .progress-container { width: 100%; margin-bottom: 4px; display: flex; align-items: center; }
 
-        /* 🔥 재생바 디자인: 배경 투명 + 민트색 테두리 느낌 */
+        /* 🔥 재생바 디자인 수정 */
         input[type="range"] { 
             -webkit-appearance: none;
             width: 100%; 
             background: transparent; 
             cursor: pointer;
             margin: 0;
+            outline: none;
         }
-        /* 재생바 트랙(바탕) */
+
+        /* 재생바 트랙(바탕): 민트색 테두리 + 실시간 게이지 배경 */
         input[type="range"]::-webkit-slider-runnable-track {
             width: 100%;
             height: 6px;
             cursor: pointer;
-            background: transparent;
             border-radius: 10px;
-            border: 1px solid #B2DFDB; /* 민트색 테두리 */
+            border: 1px solid #B2DFDB;
+            /* 자바스크립트에서 이 배경을 업데이트하여 채워지는 효과를 줍니다 */
+            background: linear-gradient(to right, #B2DFDB 0%, transparent 0%);
         }
-        /* 재생바 조절 손잡이 */
+
         input[type="range"]::-webkit-slider-thumb {
             height: 12px;
             width: 12px;
@@ -49,20 +52,19 @@
             background: #B2DFDB;
             cursor: pointer;
             -webkit-appearance: none;
-            margin-top: -4px; /* 트랙 중앙에 맞춤 */
+            margin-top: -4px;
+            border: none;
         }
 
-        .time-info { width: 100%; display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; } /* 마진 줄임 */
+        .time-info { width: 100%; display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; }
 
-        /* 🔥 버튼 영역: 크기 줄이고 위로 올림 */
         .buttons { position: relative; display: flex; align-items: center; gap: 20px; margin-top: -5px; }
         .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 18px; z-index: 5; padding: 0; }
-        .play-btn-ui { font-size: 32px; } /* 재생버튼 크기 축소 */
+        .play-btn-ui { font-size: 32px; }
 
-        /* 재생 버튼 잔상 제거용 */
         #player-wrapper {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 40px; height: 40px; opacity: 0; /* 완전히 투명하게 */
+            width: 40px; height: 40px; opacity: 0;
             z-index: 10;
             overflow: hidden;
             border-radius: 50%;
@@ -141,12 +143,19 @@
             }
         }
 
+        // 재생바 배경을 업데이트하는 함수
+        function updateProgressBarBackground(value) {
+            progressBar.style.background = `linear-gradient(to right, #B2DFDB ${value}%, transparent ${value}%)`;
+        }
+
         function updateProgress() {
             if (player && player.getCurrentTime) {
                 const current = player.getCurrentTime();
                 const duration = player.getDuration();
                 if (duration > 0) {
-                    progressBar.value = (current / duration) * 100;
+                    const progressValue = (current / duration) * 100;
+                    progressBar.value = progressValue;
+                    updateProgressBarBackground(progressValue); // 게이지 업데이트
                     document.getElementById('current-time').innerText = formatTime(current);
                     document.getElementById('duration-time').innerText = formatTime(duration);
                 }
@@ -158,7 +167,9 @@
 
         progressBar.oninput = function() {
             const duration = player.getDuration();
-            player.seekTo(duration * (progressBar.value / 100));
+            const value = progressBar.value;
+            updateProgressBarBackground(value); // 드래그 시 게이지 업데이트
+            player.seekTo(duration * (value / 100));
         };
     </script>
 </body>
