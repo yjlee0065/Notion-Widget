@@ -21,21 +21,52 @@
 
         .controls { width: 240px; display: flex; flex-direction: column; align-items: center; }
         .song-title { font-size: 15px; font-weight: bold; color: #555; margin-bottom: 12px; text-align: center; width: 100%; }
-        .progress-container { width: 100%; margin-bottom: 4px; }
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: #B2DFDB; }
-        .time-info { width: 100%; display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 12px; }
+        
+        .progress-container { width: 100%; margin-bottom: 4px; display: flex; align-items: center; }
 
-        .buttons { position: relative; display: flex; align-items: center; gap: 25px; }
-        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 24px; z-index: 5; }
-        .play-btn-ui { font-size: 40px; }
+        /* 🔥 재생바 디자인: 배경 투명 + 민트색 테두리 느낌 */
+        input[type="range"] { 
+            -webkit-appearance: none;
+            width: 100%; 
+            background: transparent; 
+            cursor: pointer;
+            margin: 0;
+        }
+        /* 재생바 트랙(바탕) */
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: transparent;
+            border-radius: 10px;
+            border: 1px solid #B2DFDB; /* 민트색 테두리 */
+        }
+        /* 재생바 조절 손잡이 */
+        input[type="range"]::-webkit-slider-thumb {
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: #B2DFDB;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -4px; /* 트랙 중앙에 맞춤 */
+        }
 
-        /* 🔥 핵심: 납치 방지 레이어 */
+        .time-info { width: 100%; display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; } /* 마진 줄임 */
+
+        /* 🔥 버튼 영역: 크기 줄이고 위로 올림 */
+        .buttons { position: relative; display: flex; align-items: center; gap: 20px; margin-top: -5px; }
+        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 18px; z-index: 5; padding: 0; }
+        .play-btn-ui { font-size: 32px; } /* 재생버튼 크기 축소 */
+
+        /* 재생 버튼 잔상 제거용 */
         #player-wrapper {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 60px; height: 60px; opacity: 0.01;
-            z-index: 10; /* 처음엔 버튼보다 위에 있음 */
+            width: 40px; height: 40px; opacity: 0; /* 완전히 투명하게 */
+            z-index: 10;
+            overflow: hidden;
+            border-radius: 50%;
         }
-        /* 재생 중일 때는 유튜브 레이어를 클릭할 수 없게 뒤로 숨김 */
         .is-playing #player-wrapper { z-index: -1; pointer-events: none; }
     </style>
 </head>
@@ -78,7 +109,7 @@
 
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
-                height: '60', width: '60', videoId: VIDEO_ID,
+                height: '40', width: '40', videoId: VIDEO_ID,
                 playerVars: { 'enablejsapi': 1, 'origin': location.origin, 'controls': 0, 'modestbranding': 1 },
                 events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange }
             });
@@ -88,7 +119,6 @@
             cdImage.style.backgroundImage = `url('https://img.youtube.com/vi/${VIDEO_ID}/maxresdefault.jpg')`;
         }
 
-        // 재생 중일 때 버튼이나 시디를 누르면 일시정지 실행
         playBtnUI.onclick = togglePlay;
         cdClickArea.onclick = togglePlay;
 
@@ -99,15 +129,15 @@
         }
 
         function onPlayerStateChange(event) {
-            if (event.data == 1) { // 재생 중
+            if (event.data == 1) { 
                 playBtnUI.innerText = '⏸';
                 cdImage.style.animationPlayState = 'running';
-                controls.classList.add('is-playing'); // 레이어 숨기기 작동
+                controls.classList.add('is-playing');
                 updateProgress();
-            } else { // 정지/일시정지
+            } else {
                 playBtnUI.innerText = '▶';
                 cdImage.style.animationPlayState = 'paused';
-                controls.classList.remove('is-playing'); // 다시 유튜브 클릭 가능하게
+                controls.classList.remove('is-playing');
             }
         }
 
