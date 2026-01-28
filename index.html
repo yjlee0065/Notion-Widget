@@ -6,41 +6,36 @@
     <style>
         body { margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background: transparent; overflow: hidden; }
         
-        /* 전체 플레이어 컨테이너 */
-        .player-wrapper { position: relative; width: 200px; height: 200px; margin-bottom: 25px; cursor: pointer; }
+        .cd-container { position: relative; width: 200px; height: 200px; margin-bottom: 25px; }
 
-        /* 빙글빙글 도는 시디 */
         #cd-image { 
             width: 100%; height: 100%; border-radius: 50%; 
             background-size: cover; background-position: center; 
             box-shadow: 0 8px 20px rgba(0,0,0,0.15); border: 5px solid #fff; 
             animation: rotate 10s linear infinite; animation-play-state: paused;
-            pointer-events: none; /* 클릭이 뒤로 전달되게 함 */
-        }
-
-        /* 실제 유튜브 플레이어 (시디 위에 투명하게 덮음) */
-        #player-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0.01; /* 거의 투명하지만 클릭은 가능하게 */
-            z-index: 10;
         }
 
         .cd-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 35px; height: 35px; background: #fff; border-radius: 50%; z-index: 2; }
         
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* 하단 컨트롤러 */
         .controls { width: 240px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
         input[type="range"] { width: 100%; cursor: pointer; accent-color: #B2DFDB; }
         .buttons { display: flex; align-items: center; gap: 25px; }
-        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 24px; }
+        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 24px; transition: transform 0.1s; }
+        .btn:active { transform: scale(0.9); }
         .play-btn { font-size: 40px; }
+
+        /* 유튜브 플레이어는 아주 작게 숨김 */
+        #player-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <div class="player-wrapper">
-        <div id="player-overlay"></div> <div id="cd-image"></div>
+    <div id="player-hidden"></div>
+
+    <div class="cd-container">
+        <div id="cd-image"></div>
         <div class="cd-center"></div>
     </div>
 
@@ -66,15 +61,15 @@
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
         function onYouTubeIframeAPIReady() {
-            player = new YT.Player('player-overlay', {
-                height: '100%',
-                width: '100%',
+            player = new YT.Player('player-hidden', {
+                height: '100',
+                width: '100',
                 videoId: VIDEO_ID,
                 playerVars: {
-                    'autoplay': 0,
-                    'controls': 1, // 권한 획득을 위해 일시적으로 켬
                     'enablejsapi': 1,
-                    'origin': location.origin
+                    'origin': location.origin,
+                    'autoplay': 0,
+                    'controls': 0
                 },
                 events: {
                     'onReady': onPlayerReady,
@@ -98,11 +93,13 @@
             }
         }
 
-        // 하단 커스텀 버튼 클릭 시에도 작동하도록 설정
+        // 재생 버튼 클릭 이벤트에 집중
         playBtn.onclick = function() {
-            if (player.getPlayerState() == YT.PlayerState.PLAYING) {
+            const state = player.getPlayerState();
+            if (state == YT.PlayerState.PLAYING) {
                 player.pauseVideo();
             } else {
+                // 브라우저 정책 대응: 강제 재생 시도
                 player.playVideo();
             }
         };
