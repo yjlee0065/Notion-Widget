@@ -24,7 +24,7 @@
         
         .progress-container { width: 100%; margin-bottom: 4px; display: flex; align-items: center; }
 
-        /* 🔥 재생바 디자인 수정 */
+        /* 🔥 재생바 디자인: 왼쪽 네모남 방지 */
         input[type="range"] { 
             -webkit-appearance: none;
             width: 100%; 
@@ -34,15 +34,15 @@
             outline: none;
         }
 
-        /* 재생바 트랙(바탕): 민트색 테두리 + 실시간 게이지 배경 */
+        /* 트랙 디자인: overflow hidden으로 내부 색상이 튀어나오지 않게 함 */
         input[type="range"]::-webkit-slider-runnable-track {
             width: 100%;
             height: 6px;
             cursor: pointer;
-            border-radius: 10px;
+            border-radius: 10px; /* 둥근 모서리 */
             border: 1px solid #B2DFDB;
-            /* 자바스크립트에서 이 배경을 업데이트하여 채워지는 효과를 줍니다 */
             background: linear-gradient(to right, #B2DFDB 0%, transparent 0%);
+            overflow: hidden; /* 🔥 게이지가 둥근 모서리를 넘지 못하게 가둠 */
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -54,10 +54,11 @@
             -webkit-appearance: none;
             margin-top: -4px;
             border: none;
+            position: relative;
+            z-index: 1; /* 손잡이가 게이지 위에 오도록 */
         }
 
         .time-info { width: 100%; display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; }
-
         .buttons { position: relative; display: flex; align-items: center; gap: 20px; margin-top: -5px; }
         .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 18px; z-index: 5; padding: 0; }
         .play-btn-ui { font-size: 32px; }
@@ -93,7 +94,7 @@
 
     <script>
         const VIDEO_ID = '6VHik9rPxp8'; 
-        const SONG_TITLE = '재생할 노래 제목';
+        const SONG_TITLE = '어리고 부끄럽고 바보 같은';
 
         let player;
         const playBtnUI = document.getElementById('play-pause-ui');
@@ -143,7 +144,6 @@
             }
         }
 
-        // 재생바 배경을 업데이트하는 함수
         function updateProgressBarBackground(value) {
             progressBar.style.background = `linear-gradient(to right, #B2DFDB ${value}%, transparent ${value}%)`;
         }
@@ -155,7 +155,7 @@
                 if (duration > 0) {
                     const progressValue = (current / duration) * 100;
                     progressBar.value = progressValue;
-                    updateProgressBarBackground(progressValue); // 게이지 업데이트
+                    updateProgressBarBackground(progressValue);
                     document.getElementById('current-time').innerText = formatTime(current);
                     document.getElementById('duration-time').innerText = formatTime(duration);
                 }
@@ -168,7 +168,7 @@
         progressBar.oninput = function() {
             const duration = player.getDuration();
             const value = progressBar.value;
-            updateProgressBarBackground(value); // 드래그 시 게이지 업데이트
+            updateProgressBarBackground(value);
             player.seekTo(duration * (value / 100));
         };
     </script>
