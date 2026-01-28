@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Notion CD Player</title>
+    <style>
+        body { margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background: transparent; overflow: hidden; font-family: 'Pretendard', sans-serif; }
+        
+        /* 설정 영역 (평소엔 투명, 마우스 올리면 나타남) */
+        .setting-area {
+            position: absolute; top: 5px; opacity: 0; transition: opacity 0.3s;
+            display: flex; gap: 5px; z-index: 100; width: 90%;
+        }
+        body:hover .setting-area { opacity: 1; }
+        #link-input { 
+            flex: 1; padding: 4px 8px; font-size: 11px; border-radius: 4px; 
+            border: 1px solid #B2DFDB; outline: none; background: rgba(255,255,255,0.8);
+        }
+        #set-btn { 
+            padding: 4px 8px; font-size: 11px; background: #B2DFDB; color: white; 
+            border: none; border-radius: 4px; cursor: pointer; 
+        }
+
+        /* 시디 및 컨트롤러 디자인 */
+        .player-wrapper { position: relative; width: 180px; height: 180px; margin: 30px 0 20px 0; cursor: pointer; border-radius: 50%; }
+        #cd-image { 
+            width: 100%; height: 100%; border-radius: 50%; 
+            background-size: cover; background-position: center; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15); border: 5px solid #fff; 
+            animation: rotate 10s linear infinite; animation-play-state: paused;
+            box-sizing: border-box; background-image: url('https://via.placeholder.com/200?text=Paste+Link');
+        }
+        .cd-center { position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; background: #fff; border-radius: 50%; z-index: 2; transform: translate(-50%, -50%); pointer-events: none; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .controls { width: 220px; display: flex; flex-direction: column; align-items: center; }
+        .song-title { font-size: 14px; font-weight: bold; color: #555; margin-bottom: 10px; text-align: center; width: 100%; }
+        
+        .progress-container { width: 100%; margin-bottom: 4px; display: flex; align-items: center; }
+        input[type="range"] { 
+            -webkit-appearance: none; width: 100%; height: 6px; background: transparent; cursor: pointer; margin: 0; outline: none;
+            border-radius: 10px; border: 1px solid #B2DFDB;
+            background-image: linear-gradient(#B2DFDB, #B2DFDB); background-size: 0% 100%; background-repeat: no-repeat;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 12px; width: 12px; border-radius: 50%;
+            background: #B2DFDB; cursor: pointer; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .time-info { width: 100%; display: flex; justify-content: space-between; font-size: 10px; color: #888; margin-bottom: 5px; }
+        .buttons { position: relative; display: flex; align-items: center; gap: 15px; margin-top: -5px; }
+        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 16px; z-index: 5; }
+        .play-btn-ui { font-size: 28px; }
+
+        #player-wrapper { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; opacity: 0; z-index: 10; border-radius: 50%; overflow: hidden; }
+        .is-playing #player-wrapper { z-index: -1; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div class="setting-area">
+        <input type="text" id="link-input" placeholder="유튜브 링크를 붙여넣으세요">
+        <button id="set-btn">확인</button>
+    </div>
+
+    <div class="player-wrapper" id="cd-click-area">
+        <div id="cd-image"></div>
+        <div class="cd-center"></div>
+    </div>
+
+    <div class="controls" id="main-controls">
+        <div class="song-title" id="song-name">곡을 선택해주세요</div>
+        <div class="progress-container"><input type="range" id="progress-bar" value="0" min="0" max="100"></div>
+        <div class="time-info"><span id="current-time">0:00</span><span id="duration-time">0:00</span></div>
+        <div class="buttons">
+            <button class="btn" style="opacity: 0.3;">⏮</button>
+            <div class="btn play-btn-ui" id="play-pause-ui">▶</div>
+            <div id="player-wrapper"><div id="player"></div></div>
+            <button class="btn" style="opacity: 0.3;">⏭</button>
+        </div>
+    </div>
+
+    <script>
+        let player;
+        const playBtnUI = document.getElementById('play-pause-ui');
+        const progressBar = document.getElementById('progress-bar');
+        const cdImage = document.getElementById('cd-image');
+        const controls = document.getElementById('main-controls');
+        const linkInput = document.getElementById('link-input');
+        const setBtn = document.getElementById('set-btn');
+
+        // 유튜브 스크립트 로드
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        function extractVideoId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : url;
+        }
+
+        setBtn.onclick = function() {
+            const id = extractVideoId(linkInput.value);
+            if(id) {
+                if(player) {
+                    player.loadVideoById(id);
+                    cdImage.style.backgroundImage = `url('https://img.youtube.com/vi/${id}/maxresdefault.jpg')`;
+                } else {
+                    initPlayer(id);
+                }
+                document.getElementById('song-name').innerText = "Playing Now";
+            }
+        };
+
+        function initPlayer(id) {
+            player = new YT.Player('player', {
+                height: '40', width: '40', videoId: id,
+                playerVars: { 'enablejsapi': 1, 'origin': location.origin, 'controls': 0, 'modestbranding': 1 },
+                events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange }
+            });
+        }
+
+        function onYouTubeIframeAPIReady() {}
+
+        function onPlayerReady() {
+            const id = player.getVideoData().video_id;
+            cdImage.style.backgroundImage = `url('https://img.youtube.com/vi/${id}/maxresdefault.jpg')`;
+        }
+
+        document.getElementById('cd-click-area').onclick = togglePlay;
+        playBtnUI.onclick = togglePlay;
+
+        function togglePlay() {
+            if(!player) return;
+            const state = player.getPlayerState();
+            if (state == 1) player.pauseVideo();
+            else player.playVideo();
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == 1) { 
+                playBtnUI.innerText = '⏸';
+                cdImage.style.animationPlayState = 'running';
+                controls.classList.add('is-playing');
+                updateProgress();
+            } else {
+                playBtnUI.innerText = '▶';
+                cdImage.style.animationPlayState = 'paused';
+                controls.classList.remove('is-playing');
+            }
+        }
+
+        function updateProgress() {
+            if (player && player.getCurrentTime) {
+                const current = player.getCurrentTime();
+                const duration = player.getDuration();
+                if (duration > 0) {
+                    const progressValue = (current / duration) * 100;
+                    progressBar.value = progressValue;
+                    progressBar.style.backgroundSize = progressValue + '% 100%';
+                    document.getElementById('current-time').innerText = formatTime(current);
+                    document.getElementById('duration-time').innerText = formatTime(duration);
+                }
+                if (player.getPlayerState() == 1) setTimeout(updateProgress, 1000);
+            }
+        }
+
+        function formatTime(s) { const m=Math.floor(s/60); const sec=Math.floor(s%60); return `${m}:${sec<10?'0':''}${sec}`; }
+
+        progressBar.oninput = function() {
+            if(!player) return;
+            const duration = player.getDuration();
+            const value = progressBar.value;
+            progressBar.style.backgroundSize = value + '% 100%';
+            player.seekTo(duration * (value / 100));
+        };
+    </script>
+</body>
+</html>
