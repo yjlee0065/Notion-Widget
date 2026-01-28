@@ -7,7 +7,6 @@
         body { margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background: transparent; overflow: hidden; font-family: 'Pretendard', sans-serif; }
         
         .player-wrapper { position: relative; width: 200px; height: 200px; margin-bottom: 20px; cursor: pointer; border-radius: 50%; }
-
         #cd-image { 
             width: 100%; height: 100%; border-radius: 50%; 
             background-size: cover; background-position: center; 
@@ -15,7 +14,6 @@
             animation: rotate 10s linear infinite; animation-play-state: paused;
             box-sizing: border-box;
         }
-
         .cd-center { position: absolute; top: 50%; left: 50%; width: 35px; height: 35px; background: #fff; border-radius: 50%; z-index: 2; transform: translate(-50%, -50%); pointer-events: none; }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
@@ -24,38 +22,40 @@
         
         .progress-container { width: 100%; margin-bottom: 4px; display: flex; align-items: center; }
 
-        /* 🔥 재생바 디자인: 왼쪽 네모남 방지 */
+        /* 🔥 재생바 디자인 완전 개편 */
         input[type="range"] { 
             -webkit-appearance: none;
             width: 100%; 
+            height: 6px; /* 트랙 높이 */
             background: transparent; 
             cursor: pointer;
             margin: 0;
             outline: none;
-        }
-
-        /* 트랙 디자인: overflow hidden으로 내부 색상이 튀어나오지 않게 함 */
-        input[type="range"]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 6px;
-            cursor: pointer;
-            border-radius: 10px; /* 둥근 모서리 */
+            /* 트랙 자체에 둥근 테두리와 배경 설정 */
+            border-radius: 10px;
             border: 1px solid #B2DFDB;
-            background: linear-gradient(to right, #B2DFDB 0%, transparent 0%);
-            overflow: hidden; /* 🔥 게이지가 둥근 모서리를 넘지 못하게 가둠 */
+            background-image: linear-gradient(#B2DFDB, #B2DFDB);
+            background-size: 0% 100%;
+            background-repeat: no-repeat;
         }
 
+        /* 크롬/노션용 손잡이(Thumb) 디자인 */
         input[type="range"]::-webkit-slider-thumb {
-            height: 12px;
-            width: 12px;
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
             border-radius: 50%;
             background: #B2DFDB;
             cursor: pointer;
-            -webkit-appearance: none;
-            margin-top: -4px;
+            border: 2px solid #fff; /* 손잡이를 더 잘 보이게 흰색 테두리 추가 */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            margin-top: 0px; /* 위치 수동 조정 */
+        }
+
+        /* 트랙 배경(투명화 유지) */
+        input[type="range"]::-webkit-slider-runnable-track {
+            background: transparent;
             border: none;
-            position: relative;
-            z-index: 1; /* 손잡이가 게이지 위에 오도록 */
         }
 
         .time-info { width: 100%; display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; }
@@ -94,7 +94,7 @@
 
     <script>
         const VIDEO_ID = '6VHik9rPxp8'; 
-        const SONG_TITLE = '어리고 부끄럽고 바보 같은';
+        const SONG_TITLE = '재생할 노래 제목';
 
         let player;
         const playBtnUI = document.getElementById('play-pause-ui');
@@ -144,10 +144,6 @@
             }
         }
 
-        function updateProgressBarBackground(value) {
-            progressBar.style.background = `linear-gradient(to right, #B2DFDB ${value}%, transparent ${value}%)`;
-        }
-
         function updateProgress() {
             if (player && player.getCurrentTime) {
                 const current = player.getCurrentTime();
@@ -155,7 +151,8 @@
                 if (duration > 0) {
                     const progressValue = (current / duration) * 100;
                     progressBar.value = progressValue;
-                    updateProgressBarBackground(progressValue);
+                    // 배경 사이즈 조절로 왼쪽 둥근 모서리 네모남 해결
+                    progressBar.style.backgroundSize = progressValue + '% 100%';
                     document.getElementById('current-time').innerText = formatTime(current);
                     document.getElementById('duration-time').innerText = formatTime(duration);
                 }
@@ -168,7 +165,7 @@
         progressBar.oninput = function() {
             const duration = player.getDuration();
             const value = progressBar.value;
-            updateProgressBarBackground(value);
+            progressBar.style.backgroundSize = value + '% 100%';
             player.seekTo(duration * (value / 100));
         };
     </script>
