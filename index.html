@@ -7,25 +7,52 @@
         body { margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background: transparent; overflow: hidden; }
         
         /* 전체 플레이어 컨테이너 */
-        .player-wrapper { position: relative; width: 200px; height: 200px; margin-bottom: 25px; cursor: pointer; }
+        .player-wrapper { 
+            position: relative; 
+            width: 200px; 
+            height: 200px; 
+            margin-bottom: 25px; 
+            cursor: pointer;
+            border-radius: 50%; /* 네모난 잔상을 방지하기 위해 컨테이너도 원형으로 설정 */
+        }
 
         /* 빙글빙글 도는 시디 */
         #cd-image { 
             width: 100%; height: 100%; border-radius: 50%; 
             background-size: cover; background-position: center; 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15); border: 5px solid #fff; 
-            animation: rotate 10s linear infinite; animation-play-state: paused;
-            pointer-events: none; /* 클릭이 뒤로 전달되게 함 */
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15); 
+            border: 5px solid #fff; 
+            animation: rotate 10s linear infinite; 
+            animation-play-state: paused;
+            pointer-events: none;
+            box-sizing: border-box; /* 테두리가 크기에 영향을 주지 않도록 설정 */
         }
 
-        /* 실제 유튜브 플레이어 (시디 위에 투명하게 덮음) */
+        /* 실제 유튜브 플레이어 (완전 투명화 및 잔상 제거) */
         #player-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0.01; /* 거의 투명하지만 클릭은 가능하게 */
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%;
+            opacity: 0.01;
             z-index: 10;
+            border-radius: 50%; /* 플레이어 영역도 원형으로 제한 */
+            overflow: hidden;
         }
 
-        .cd-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 35px; height: 35px; background: #fff; border-radius: 50%; z-index: 2; }
+        /* 시디 정중앙 구멍 교정 */
+        .cd-center { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            width: 35px; 
+            height: 35px; 
+            background: #fff; 
+            border-radius: 50%; 
+            z-index: 2; 
+            /* transform을 사용하여 정확히 자신의 절반만큼 이동시켜 정중앙 배치 */
+            transform: translate(-50%, -50%); 
+            pointer-events: none;
+        }
         
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
@@ -40,7 +67,8 @@
 <body>
 
     <div class="player-wrapper">
-        <div id="player-overlay"></div> <div id="cd-image"></div>
+        <div id="player-overlay"></div> 
+        <div id="cd-image"></div>
         <div class="cd-center"></div>
     </div>
 
@@ -72,9 +100,11 @@
                 videoId: VIDEO_ID,
                 playerVars: {
                     'autoplay': 0,
-                    'controls': 1, // 권한 획득을 위해 일시적으로 켬
+                    'controls': 1,
                     'enablejsapi': 1,
-                    'origin': location.origin
+                    'origin': location.origin,
+                    'modestbranding': 1, // 유튜브 로고 최소화
+                    'rel': 0 // 추천 영상 제거
                 },
                 events: {
                     'onReady': onPlayerReady,
@@ -98,7 +128,6 @@
             }
         }
 
-        // 하단 커스텀 버튼 클릭 시에도 작동하도록 설정
         playBtn.onclick = function() {
             if (player.getPlayerState() == YT.PlayerState.PLAYING) {
                 player.pauseVideo();
