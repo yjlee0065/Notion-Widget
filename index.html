@@ -4,19 +4,18 @@
     <meta charset="UTF-8">
     <title>Notion CD Player</title>
     <style>
-        body { margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background: transparent; overflow: hidden; }
+        body { margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background: transparent; overflow: hidden; font-family: sans-serif; }
         
-        /* 전체 플레이어 컨테이너 */
+        /* 시디 컨테이너 */
         .player-wrapper { 
             position: relative; 
             width: 200px; 
             height: 200px; 
-            margin-bottom: 25px; 
+            margin-bottom: 20px; 
             cursor: pointer;
-            border-radius: 50%; /* 네모난 잔상을 방지하기 위해 컨테이너도 원형으로 설정 */
+            border-radius: 50%;
         }
 
-        /* 빙글빙글 도는 시디 */
         #cd-image { 
             width: 100%; height: 100%; border-radius: 50%; 
             background-size: cover; background-position: center; 
@@ -25,43 +24,46 @@
             animation: rotate 10s linear infinite; 
             animation-play-state: paused;
             pointer-events: none;
-            box-sizing: border-box; /* 테두리가 크기에 영향을 주지 않도록 설정 */
+            box-sizing: border-box;
         }
 
-        /* 실제 유튜브 플레이어 (완전 투명화 및 잔상 제거) */
         #player-overlay {
-            position: absolute; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%;
-            opacity: 0.01;
-            z-index: 10;
-            border-radius: 50%; /* 플레이어 영역도 원형으로 제한 */
-            overflow: hidden;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.01; z-index: 10; border-radius: 50%; overflow: hidden;
         }
 
-        /* 시디 정중앙 구멍 교정 */
         .cd-center { 
-            position: absolute; 
-            top: 50%; 
-            left: 50%; 
-            width: 35px; 
-            height: 35px; 
-            background: #fff; 
-            border-radius: 50%; 
-            z-index: 2; 
-            /* transform을 사용하여 정확히 자신의 절반만큼 이동시켜 정중앙 배치 */
-            transform: translate(-50%, -50%); 
-            pointer-events: none;
+            position: absolute; top: 50%; left: 50%; width: 35px; height: 35px; 
+            background: #fff; border-radius: 50%; z-index: 2; 
+            transform: translate(-50%, -50%); pointer-events: none;
         }
         
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* 하단 컨트롤러 */
-        .controls { width: 240px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: #B2DFDB; }
+        /* 컨트롤러 레이아웃 */
+        .controls { width: 240px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* 노래 제목 */
+        .song-title {
+            font-size: 16px; font-weight: bold; color: #555;
+            margin-bottom: 15px; text-align: center;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
+        }
+
+        /* 재생바 컨테이너 */
+        .progress-container { width: 100%; margin-bottom: 5px; }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: #B2DFDB; margin: 0; }
+
+        /* 시간 표시 */
+        .time-info {
+            width: 100%; display: flex; justify-content: space-between;
+            font-size: 11px; color: #888; margin-bottom: 15px;
+        }
+
+        /* 버튼 */
         .buttons { display: flex; align-items: center; gap: 25px; }
-        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 24px; }
-        .play-btn { font-size: 40px; }
+        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 24px; display: flex; align-items: center; }
+        .play-btn-ui { font-size: 40px; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -73,20 +75,37 @@
     </div>
 
     <div class="controls">
-        <input type="range" id="progress-bar" value="0" min="0" max="100">
+        <div class="song-title" id="song-name">Loading...</div>
+
+        <div class="progress-container">
+            <input type="range" id="progress-bar" value="0" min="0" max="100">
+        </div>
+
+        <div class="time-info">
+            <span id="current-time">0:00</span>
+            <span id="duration-time">0:00</span>
+        </div>
+
         <div class="buttons">
             <button class="btn" style="opacity: 0.5;">⏮</button>
-            <button class="btn play-btn" id="play-pause">▶</button>
+            <div class="btn play-btn-ui" id="play-pause-ui">▶</div>
             <button class="btn" style="opacity: 0.5;">⏭</button>
         </div>
     </div>
 
     <script>
-        const VIDEO_ID = '6VHik9rPxp8';
+        const VIDEO_ID = '6VHik9rPxp8'; 
+        const SONG_TITLE = '어리고 부끄럽고 바보 같은'; // 여기에 제목을 적어주세요!
+
         let player;
-        const playBtn = document.getElementById('play-pause');
+        const playBtnUI = document.getElementById('play-pause-ui');
         const progressBar = document.getElementById('progress-bar');
         const cdImage = document.getElementById('cd-image');
+        const songNameDisplay = document.getElementById('song-name');
+        const currentTimeDisplay = document.getElementById('current-time');
+        const durationDisplay = document.getElementById('duration-time');
+
+        songNameDisplay.innerText = SONG_TITLE; // 제목 설정
 
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
@@ -95,52 +114,42 @@
 
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player-overlay', {
-                height: '100%',
-                width: '100%',
-                videoId: VIDEO_ID,
-                playerVars: {
-                    'autoplay': 0,
-                    'controls': 1,
-                    'enablejsapi': 1,
-                    'origin': location.origin,
-                    'modestbranding': 1, // 유튜브 로고 최소화
-                    'rel': 0 // 추천 영상 제거
-                },
-                events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
-                }
+                height: '100%', width: '100%', videoId: VIDEO_ID,
+                playerVars: { 'autoplay': 0, 'controls': 1, 'enablejsapi': 1, 'origin': location.origin, 'modestbranding': 1, 'rel': 0 },
+                events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange }
             });
         }
 
-        function onPlayerReady(event) {
+        function onPlayerReady() {
             cdImage.style.backgroundImage = `url('https://img.youtube.com/vi/${VIDEO_ID}/maxresdefault.jpg')`;
+        }
+
+        function formatTime(seconds) {
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60);
+            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
         }
 
         function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.PLAYING) {
-                playBtn.innerText = '⏸';
+                playBtnUI.innerText = '⏸';
                 cdImage.style.animationPlayState = 'running';
+                durationDisplay.innerText = formatTime(player.getDuration()); // 총 길이 표시
                 updateProgress();
             } else {
-                playBtn.innerText = '▶';
+                playBtnUI.innerText = '▶';
                 cdImage.style.animationPlayState = 'paused';
             }
         }
-
-        playBtn.onclick = function() {
-            if (player.getPlayerState() == YT.PlayerState.PLAYING) {
-                player.pauseVideo();
-            } else {
-                player.playVideo();
-            }
-        };
 
         function updateProgress() {
             if (player && player.getCurrentTime) {
                 const current = player.getCurrentTime();
                 const duration = player.getDuration();
-                if (duration > 0) progressBar.value = (current / duration) * 100;
+                if (duration > 0) {
+                    progressBar.value = (current / duration) * 100;
+                    currentTimeDisplay.innerText = formatTime(current); // 현재 재생 위치 업데이트
+                }
                 if (player.getPlayerState() == YT.PlayerState.PLAYING) setTimeout(updateProgress, 1000);
             }
         }
