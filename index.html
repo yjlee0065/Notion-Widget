@@ -19,18 +19,20 @@
         input[type="range"] { width: 100%; cursor: pointer; accent-color: #B2DFDB; }
         
         .buttons { display: flex; align-items: center; gap: 25px; position: relative; }
-        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 24px; }
-        .play-btn-ui { font-size: 40px; pointer-events: none; } /* UI만 보여줌 */
+        .btn { background: none; border: none; cursor: pointer; color: #B2DFDB; font-size: 24px; z-index: 5; }
+        .play-btn-ui { font-size: 40px; }
         
-        /* 🔥 핵심: 실제 유튜브 버튼을 재생 버튼 위치에 투명하게 겹침 */
+        /* 투명 플레이어 영역 수정 */
         #player-wrapper {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 60px; height: 60px; /* 재생 버튼 크기만큼 */
-            z-index: 10;
-            opacity: 0.01; /* 눈에는 안 보이지만 클릭은 됨 */
+            width: 60px; height: 60px;
+            z-index: 20; /* UI보다 위에 위치 */
+            opacity: 0.01;
         }
+        /* 재생 중일 때는 클릭이 링크로 가지 않도록 투명 영역을 뒤로 보냄 */
+        .playing #player-wrapper { z-index: -1; }
     </style>
 </head>
 <body>
@@ -40,21 +42,23 @@
         <div class="cd-center"></div>
     </div>
 
-    <div class="controls">
+    <div class="controls" id="main-controls">
         <input type="range" id="progress-bar" value="0" min="0" max="100">
         <div class="buttons">
             <button class="btn" style="opacity: 0.5;">⏮</button>
             <div class="btn play-btn-ui" id="play-pause-ui">▶</div>
-            <div id="player-wrapper"><div id="player"></div></div> <button class="btn" style="opacity: 0.5;">⏭</button>
+            <div id="player-wrapper"><div id="player"></div></div>
+            <button class="btn" style="opacity: 0.5;">⏭</button>
         </div>
     </div>
 
     <script>
-        const VIDEO_ID = '6VHik9rPxp8';
+        const VIDEO_ID = '6VHik9rPxp8'; //
         let player;
         const playBtnUI = document.getElementById('play-pause-ui');
         const progressBar = document.getElementById('progress-bar');
         const cdImage = document.getElementById('cd-image');
+        const controls = document.getElementById('main-controls');
 
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
@@ -63,10 +67,8 @@
 
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
-                height: '60',
-                width: '60',
-                videoId: VIDEO_ID,
-                playerVars: { 'enablejsapi': 1, 'origin': location.origin, 'controls': 0 },
+                height: '60', width: '60', videoId: VIDEO_ID,
+                playerVars: { 'enablejsapi': 1, 'origin': location.origin, 'controls': 0, 'disablekb': 1, 'fs': 0 },
                 events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange }
             });
         }
@@ -76,18 +78,26 @@
         }
 
         function onPlayerStateChange(event) {
-            // 재생 중
-            if (event.data == 1) {
+            if (event.data == 1) { // PLAYING
                 playBtnUI.innerText = '⏸';
                 cdImage.style.animationPlayState = 'running';
+                controls.classList.add('playing'); // 링크 이동 방지용 클래스 추가
                 updateProgress();
-            } 
-            // 정지 중
-            else {
+            } else { // PAUSED or ended
                 playBtnUI.innerText = '▶';
                 cdImage.style.animationPlayState = 'paused';
+                controls.classList.remove('playing'); // 일시정지 시 다시 클릭 가능하게
             }
         }
+
+        // 재생버튼 UI 클릭 시 제어 (두 번째 클릭부터는 이 버튼이 직접 제어)
+        playBtnUI.onclick = function() {
+            if (player.getPlayerState() == 1) {
+                player.pauseVideo();
+            } else {
+                player.playVideo();
+            }
+        };
 
         function updateProgress() {
             if (player && player.getCurrentTime) {
